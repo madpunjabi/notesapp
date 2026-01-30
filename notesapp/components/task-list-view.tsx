@@ -262,7 +262,7 @@ function TaskItem({ task, onSelect, onUpdate, onDelete, isSelected, depth }: Tas
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, marginLeft: depth * 16 }}
+      style={{ ...style, marginLeft: depth * 48 }}
       data-depth={depth}
     >
       <div
