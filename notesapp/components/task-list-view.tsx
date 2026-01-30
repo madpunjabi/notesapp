@@ -41,6 +41,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { WeatherBanner } from "./weather-banner"
 
 type TaskListViewProps = {
   tasks: Task[]
@@ -92,6 +93,9 @@ export function TaskListView({
           Manage and track your tasks with time estimation
         </p>
       </div>
+
+      {/* Weather Banner */}
+      <WeatherBanner />
 
       {/* Task List */}
       <div className="space-y-2">
