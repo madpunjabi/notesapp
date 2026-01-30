@@ -125,13 +125,13 @@ export function AppSidebar({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-center"
+          className="w-full justify-center transition-all duration-300 hover:scale-110 hover:bg-sidebar-accent"
           onClick={onToggleCollapse}
         >
           {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 transition-transform duration-300" />
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 transition-transform duration-300" />
           )}
         </Button>
       </div>
