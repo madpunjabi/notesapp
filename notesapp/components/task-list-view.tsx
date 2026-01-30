@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -207,6 +208,18 @@ function TaskItem({ task, onSelect, onUpdate, onDelete, isSelected, depth }: Tas
         origin: { y: 0.6 },
         colors: ['#FFD700', '#FFA500', '#FF6347', '#FFB6C1', '#FFDAB9']
       });
+
+      // Calculate points earned
+      const points = Math.floor((task.estimatedMinutes || 0) / 15);
+      if (points > 0) {
+        toast.success(`Task completed! +${points} points earned 🏆`, {
+          duration: 3000,
+        });
+      } else {
+        toast.success('Task completed! 🎉', {
+          duration: 3000,
+        });
+      }
     }
 
     onUpdate({
@@ -217,6 +230,25 @@ function TaskItem({ task, onSelect, onUpdate, onDelete, isSelected, depth }: Tas
   }
 
   const toggleTimer = () => {
+    if (!task.isTracking) {
+      // Starting timer
+      toast.success('⏰ Focus mode: activated', {
+        duration: 2000,
+      });
+    } else {
+      // Stopping timer
+      const minutes = Math.floor(elapsedSeconds / 60);
+      if (minutes > 0) {
+        toast.success(`Great focus session! ${minutes}m tracked ⏱️`, {
+          duration: 3000,
+        });
+      } else {
+        toast('Timer stopped', {
+          duration: 2000,
+        });
+      }
+    }
+
     onUpdate({
       ...task,
       isTracking: !task.isTracking,
