@@ -321,7 +321,8 @@ function MainApp({ user }: { user: any }) {
         ? Math.floor(updatedTask.estimatedMinutes / 15)
         : 0;
 
-      const transactions: any[] = [
+      // Update task
+      await db.transact([
         db.tx.tasks[updatedTask.id].update({
           title: updatedTask.title,
           description: updatedTask.description,
@@ -334,19 +335,17 @@ function MainApp({ user }: { user: any }) {
           completedAt: updatedTask.status === "completed" ? Date.now() : undefined,
           tags: updatedTask.tags,
         }),
-      ];
+      ]);
 
       // Award points when task is completed
       if (updatedTask.status === "completed" && originalTask?.status !== "completed" && points > 0) {
         const currentPoints = data?.$users?.find((u: any) => u.id === user.id)?.totalPoints || 0;
-        transactions.push(
+        await db.transact([
           db.tx.$users[user.id].update({
             totalPoints: currentPoints + points,
           })
-        );
+        ]);
       }
-
-      await db.transact(transactions);
     } catch (error) {
       console.error("Error updating task:", error);
       alert("Failed to update task");
