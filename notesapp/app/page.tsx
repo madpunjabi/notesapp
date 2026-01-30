@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { db } from "@/lib/db"
 import { id } from "@instantdb/react"
