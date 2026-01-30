@@ -446,6 +446,216 @@ Follow the [Testing & Verification](#testing--verification) checklist.
 
 ---
 
+## Gamification & Points System
+
+### Overview
+
+TimeBlock includes a fully implemented points system that rewards users for completing tasks. The system is designed to provide positive reinforcement and create a sense of achievement.
+
+### Points Formula
+
+```typescript
+const points = Math.floor((estimatedMinutes || 0) / 15)
+```
+
+**Every 15 minutes of estimated time = 1 point**
+
+Examples:
+- 30-minute task = 2 points
+- 45-minute task = 3 points
+- 60-minute task = 4 points
+- 90-minute task = 6 points
+
+### Implementation Flow
+
+#### 1. Points Calculation
+
+Points are calculated automatically when a task is created or updated based on the `estimatedMinutes` field.
+
+**Location**: [page.tsx:320-322](notesapp/app/page.tsx#L320-L322)
+
+```typescript
+const points = updatedTask.estimatedMinutes
+  ? Math.floor(updatedTask.estimatedMinutes / 15)
+  : 0;
+```
+
+#### 2. Points Award on Task Completion
+
+When a user completes a task, points are added to their total.
+
+**Location**: [page.tsx:339-347](notesapp/app/page.tsx#L339-L347)
+
+```typescript
+// Award points when task is completed
+if (updatedTask.status === "completed" && originalTask?.status !== "completed" && points > 0) {
+  const currentPoints = data?.$users?.find((u: any) => u.id === user.id)?.totalPoints || 0;
+  transactions.push(
+    db.tx.$users[user.id].update({
+      totalPoints: currentPoints + points,
+    })
+  );
+}
+```
+
+**Conditions**:
+- Task must be newly completed (not already completed)
+- Task must have points (calculated from estimated time)
+- Transaction updates the user's `totalPoints` in the database
+
+#### 3. Points Deduction on Task Deletion
+
+If a completed task is deleted, points are deducted from the user's total.
+
+**Location**: [page.tsx:420-443](notesapp/app/page.tsx#L420-L443)
+
+```typescript
+// Calculate total points to deduct if tasks were completed
+let pointsToDeduct = 0;
+const checkPoints = (task: Task) => {
+  if (task.status === "completed" && task.estimatedMinutes) {
+    pointsToDeduct += Math.floor(task.estimatedMinutes / 15);
+  }
+  task.subtasks.forEach(checkPoints); // Recursive for subtasks
+};
+
+// Deduct points if necessary
+if (pointsToDeduct > 0) {
+  const currentPoints = data?.$users?.find((u: any) => u.id === user.id)?.totalPoints || 0;
+  transactions.push(
+    db.tx.$users[user.id].update({
+      totalPoints: Math.max(0, currentPoints - pointsToDeduct),
+    })
+  );
+}
+```
+
+**Features**:
+- Recursive calculation for nested subtasks
+- Minimum points floor at 0 (prevents negative points)
+
+#### 4. Points Display
+
+Points are displayed in the header with an animated trophy badge.
+
+**Location**: [header.tsx:254-268](notesapp/components/header.tsx#L254-L268)
+
+```tsx
+{totalPoints > 0 && (
+  <div className={cn(
+    "hidden items-center gap-1.5 md:flex",
+    "rounded-full bg-gradient-to-br from-primary/20 to-accent/20",
+    "px-3 py-1.5 ring-1 ring-primary/30",
+    "transition-all duration-300",
+    "hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
+  )}>
+    <Trophy className="h-4 w-4 text-primary animate-pulse" />
+    <span className="text-sm font-bold tabular-nums bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+      {totalPoints}
+    </span>
+  </div>
+)}
+```
+
+**Features**:
+- Only shows when `totalPoints > 0`
+- Gradient background matching peachy theme
+- Pulsing trophy icon
+- Gradient text for points number
+- Hover animation (scale + shadow)
+- Uses `tabular-nums` for consistent number width
+
+#### 5. Points Notification
+
+When a task is completed, a toast notification displays the points earned.
+
+**Location**: [task-list-view.tsx:203-213](notesapp/components/task-list-view.tsx#L203-L213)
+
+```typescript
+// Calculate points earned
+const points = Math.floor((task.estimatedMinutes || 0) / 15);
+if (points > 0) {
+  toast.success(`Task completed! +${points} points earned 🏆`, {
+    duration: 3000,
+  });
+} else {
+  toast.success('Task completed! 🎉', {
+    duration: 3000,
+  });
+}
+```
+
+**Features**:
+- Shows points earned with trophy emoji
+- Falls back to generic celebration if no points
+- 3-second duration for visibility
+
+### Database Schema
+
+#### User Points Storage
+
+```typescript
+$users: i.entity({
+  email: i.string().unique().indexed().optional(),
+  name: i.string().optional(),
+  imageURL: i.string().optional(),
+  totalPoints: i.number().optional(),  // ← Cumulative total
+})
+```
+
+#### Task Points Storage
+
+```typescript
+tasks: i.entity({
+  title: i.string(),
+  estimatedMinutes: i.number().optional(),
+  points: i.number().optional(),  // ← Individual task points
+  status: i.string().optional(),
+  // ... other fields
+})
+```
+
+### Real-time Updates
+
+Points updates are **instant and reactive** thanks to InstantDB:
+
+1. User completes task
+2. Transaction updates both task status and user totalPoints
+3. InstantDB automatically syncs to all connected clients
+4. Header badge updates in real-time (via `db.useQuery()`)
+5. No manual refetch needed
+
+### UX Considerations
+
+**Positive Reinforcement**:
+- Confetti animation on task completion
+- Toast notification with points earned
+- Visual points badge in header
+- Trophy icon for achievement feel
+
+**Transparency**:
+- Points formula is consistent and predictable (15min = 1pt)
+- Users see points earned immediately
+- Clear visual feedback
+
+**Fairness**:
+- Points based on estimated time (user's own estimates)
+- Deleting completed tasks removes points (prevents gaming)
+- Subtasks contribute to total points independently
+
+### Future Enhancements
+
+Potential points system expansions (not yet implemented):
+
+1. **Streaks**: Bonus points for consecutive days
+2. **Milestones**: Achievement badges at 100, 500, 1000 points
+3. **Leaderboards**: Compare with friends (opt-in)
+4. **Accuracy Bonus**: Extra points when actual time ≈ estimated time
+5. **Difficulty Multipliers**: Higher points for high-priority tasks
+6. **Weekly Goals**: Set point targets and track progress
+
+---
+
 ## Research & Trends
 
 ### 2026 UI/UX Trends Analysis
@@ -566,22 +776,25 @@ Based on research of modern productivity apps and design trends:
 
 ## Implementation Checklist
 
-### Day 1: Core Enhancements
-- [ ] Create DESIGN.md documentation
-- [ ] Update globals.css (gradients, animations)
-- [ ] Install sonner for toasts
-- [ ] Update task-list-view.tsx (hover states, animations)
-- [ ] Update header.tsx (gradient buttons)
-- [ ] Update typography sizes and weights
-- [ ] Increase border-radius values
+### Day 1: Core Enhancements ✅ COMPLETE
+- [x] Create DESIGN.md documentation
+- [x] Update globals.css (gradients, animations)
+- [x] Install sonner for toasts
+- [x] Update task-list-view.tsx (hover states, animations)
+- [x] Update header.tsx (gradient buttons)
+- [x] Update typography sizes and weights
+- [x] Increase border-radius values
 
-### Day 2: Polish & Testing
-- [ ] Add gradient progress bars
-- [ ] Enhance confetti effects
-- [ ] Implement toast notifications
-- [ ] Update empty state copy
-- [ ] Add points badge animation
-- [ ] Ensure smooth transitions everywhere
+### Day 2: Polish & Testing ✅ COMPLETE
+- [x] Add gradient progress bars
+- [x] Enhance confetti effects
+- [x] Implement toast notifications
+- [x] Update empty state copy
+- [x] Add points badge animation
+- [x] Ensure smooth transitions everywhere
+- [x] Implement points system (award, deduct, display)
+- [x] Update app-sidebar.tsx (staggered animations)
+- [x] Document points system in DESIGN.md
 - [ ] Run full testing checklist
 - [ ] Test on mobile devices
 - [ ] Document any issues
