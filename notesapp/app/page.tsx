@@ -321,7 +321,7 @@ function MainApp({ user }: { user: any }) {
         ? Math.floor(updatedTask.estimatedMinutes / 15)
         : 0;
 
-      const transactions = [
+      const transactions: any[] = [
         db.tx.tasks[updatedTask.id].update({
           title: updatedTask.title,
           description: updatedTask.description,
@@ -430,7 +430,7 @@ function MainApp({ user }: { user: any }) {
       }
 
       // Create delete transactions
-      const transactions = idsToDelete.map((id) => db.tx.tasks[id].delete());
+      const transactions: any[] = idsToDelete.map((id) => db.tx.tasks[id].delete());
 
       // Deduct points if necessary
       if (pointsToDeduct > 0) {
